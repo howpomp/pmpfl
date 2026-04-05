@@ -782,8 +782,8 @@ async function loadKPMPChips() {
 
     const tempF = tempC != null ? cToF(tempC) + '°F' : '--';
     const dewF = dewC != null ? cToF(dewC) + '°F' : '--';
-    const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToKts(windSpd)}kt` : '--';
-    const gustStr = windGust != null ? `${mpsToKts(windGust)}kt` : 'None';
+    const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToMph(windSpd)}mph` : '--';
+    const gustStr = windGust != null ? `${mpsToMph(windGust)}mph` : 'None';
     const humidStr = humid != null ? Math.round(humid) + '%' : '--';
     const baroStr = baro != null ? paToInHg(baro) + '"' : '--';
     const visStr = vis != null ? metersToMiles(vis) + 'mi' : '--';
@@ -912,10 +912,21 @@ function drawRadarFrame(idx) {
   if (radarBg) radarCtx.drawImage(radarBg, 0, 0, RADAR_W, RADAR_H);
   radarCtx.drawImage(img, 0, 0, RADAR_W, RADAR_H);
 
-  // State outlines overlay (simple SVG path won't work — use text label instead)
-  radarCtx.fillStyle = 'rgba(0,170,255,0.7)';
+  // KPMP marker — lat 26.247, lon -80.111
+  // X = ((-80.111 - (-82.0)) / 2.5) * 760 ≈ 574
+  // Y = ((27.5 - 26.247) / 3.0) * 360 ≈ 150
+  const markerX = Math.round(((-80.111 - BBOX_MINX) / (BBOX_MAXX - BBOX_MINX)) * RADAR_W);
+  const markerY = Math.round(((BBOX_MAXY - KPMP_LAT) / (BBOX_MAXY - BBOX_MINY)) * RADAR_H);
+  radarCtx.beginPath();
+  radarCtx.arc(markerX, markerY, 5, 0, Math.PI * 2);
+  radarCtx.fillStyle = '#ff4444';
+  radarCtx.fill();
+  radarCtx.strokeStyle = '#ffffff';
+  radarCtx.lineWidth = 1.5;
+  radarCtx.stroke();
+  radarCtx.fillStyle = 'rgba(0,170,255,0.9)';
   radarCtx.font = 'bold 11px monospace';
-  radarCtx.fillText('KPMP ●', 375, 190);
+  radarCtx.fillText('KPMP', markerX + 8, markerY + 4);
 
   const d = new Date(time);
   document.getElementById('radar-timestamp').textContent =
@@ -1072,8 +1083,18 @@ function getIcon(shortForecast) {
 async function loadForecast() {
   const container = document.getElementById('forecast-cards');
   try {
-    const r = await fetchWithTimeout(`https://api.weather.gov/gridpoints/${NWS_GRID_WFO}/${NWS_GRID_X},${NWS_GRID_Y}/forecast`);
-    if (!r.ok) throw new Error('forecast');
+    // Try /points/ lookup first to get the correct forecast URL
+    let forecastUrl = `https://api.weather.gov/gridpoints/${NWS_GRID_WFO}/${NWS_GRID_X},${NWS_GRID_Y}/forecast`;
+    try {
+      const pr = await fetchWithTimeout(`https://api.weather.gov/points/${KPMP_LAT},${KPMP_LON}`, 8000);
+      if (pr.ok) {
+        const pd = await pr.json();
+        if (pd.properties?.forecast) forecastUrl = pd.properties.forecast;
+      }
+    } catch(e) { /* use hardcoded gridpoints URL */ }
+
+    const r = await fetchWithTimeout(forecastUrl, 12000);
+    if (!r.ok) throw new Error(`forecast HTTP ${r.status}`);
     const d = await r.json();
     const periods = d.properties.periods.slice(0, 14);
 
@@ -1117,8 +1138,8 @@ function buildAptCard(apt, p, size) {
 
   const tempF = tempC != null ? cToF(tempC) + '°' : '--';
   const dewF = dewC != null ? cToF(dewC) + '°' : '--';
-  const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToKts(windSpd)}kt` : '--';
-  const gustStr = windGust != null ? `G${mpsToKts(windGust)}` : '';
+  const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToMph(windSpd)}mph` : '--';
+  const gustStr = windGust != null ? `G${mpsToMph(windGust)}` : '';
   const ceilStr = ceilFt < 99000 ? Math.round(ceilFt / 100) * 100 + 'ft' : 'CLR';
 
   const skyDesc = sky && sky.length ?
