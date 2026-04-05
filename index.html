@@ -772,18 +772,31 @@ async function loadKPMPChips() {
 
     const tempC = p.temperature?.value;
     const dewC = p.dewpoint?.value;
-    const windSpd = p.windSpeed?.value;
+    const windSpdRaw = p.windSpeed?.value;
+    const windSpdUnit = p.windSpeed?.unitCode || '';
     const windDir = p.windDirection?.value;
-    const windGust = p.windGust?.value;
+    const windGustRaw = p.windGust?.value;
+    const windGustUnit = p.windGust?.unitCode || '';
     const humid = p.relativeHumidity?.value;
     const baro = p.seaLevelPressure?.value;
     const vis = p.visibility?.value;
     const sky = p.cloudLayers;
 
+    // NWS API returns m/s (unitCode: "wmoUnit:m_s-1") but occasionally km/h
+    function toMph(val, unit) {
+      if (val == null) return null;
+      if (unit.includes('km_h') || unit.includes('km/h')) return Math.round(val * 0.621371);
+      // assume m/s
+      return Math.round(val * 2.23694);
+    }
+
+    const windMph = toMph(windSpdRaw, windSpdUnit);
+    const gustMph = toMph(windGustRaw, windGustUnit);
+
     const tempF = tempC != null ? cToF(tempC) + '°F' : '--';
     const dewF = dewC != null ? cToF(dewC) + '°F' : '--';
-    const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToMph(windSpd)}mph` : '--';
-    const gustStr = windGust != null ? `${mpsToMph(windGust)}mph` : 'None';
+    const windStr = windMph != null ? `${windDirLabel(windDir)} ${windMph}mph` : '--';
+    const gustStr = gustMph != null ? `${gustMph}mph` : 'None';
     const humidStr = humid != null ? Math.round(humid) + '%' : '--';
     const baroStr = baro != null ? paToInHg(baro) + '"' : '--';
     const visStr = vis != null ? metersToMiles(vis) + 'mi' : '--';
@@ -813,8 +826,8 @@ const RADAR_FRAMES = 6;
 const RADAR_INTERVAL_MS = 600;
 const WMS_BASE = 'https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows';
 
-// South Florida bounding box
-const BBOX_MINX = -82.0, BBOX_MINY = 24.5, BBOX_MAXX = -79.5, BBOX_MAXY = 27.5;
+// South Florida bounding box — wider west to center peninsula; KPMP sits on east coast
+const BBOX_MINX = -83.5, BBOX_MINY = 24.5, BBOX_MAXX = -79.5, BBOX_MAXY = 27.5;
 const RADAR_W = 760, RADAR_H = 360;
 
 let radarImages = [];
@@ -1126,11 +1139,19 @@ async function fetchMetar(stationId) {
 function buildAptCard(apt, p, size) {
   const tempC = p.temperature?.value;
   const dewC = p.dewpoint?.value;
-  const windSpd = p.windSpeed?.value;
+  const windSpdRaw = p.windSpeed?.value;
+  const windSpdUnit = p.windSpeed?.unitCode || '';
   const windDir = p.windDirection?.value;
-  const windGust = p.windGust?.value;
+  const windGustRaw = p.windGust?.value;
+  const windGustUnit = p.windGust?.unitCode || '';
   const vis = p.visibility?.value;
   const sky = p.cloudLayers;
+
+  function toMphApt(val, unit) {
+    if (val == null) return null;
+    if (unit.includes('km_h') || unit.includes('km/h')) return Math.round(val * 0.621371);
+    return Math.round(val * 2.23694);
+  }
 
   const visMi = vis != null ? parseFloat(metersToMiles(vis)) : 99;
   const ceilFt = getCeilingFt(sky);
@@ -1138,8 +1159,10 @@ function buildAptCard(apt, p, size) {
 
   const tempF = tempC != null ? cToF(tempC) + '°' : '--';
   const dewF = dewC != null ? cToF(dewC) + '°' : '--';
-  const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToMph(windSpd)}mph` : '--';
-  const gustStr = windGust != null ? `G${mpsToMph(windGust)}` : '';
+  const windMph = toMphApt(windSpdRaw, windSpdUnit);
+  const gustMph = toMphApt(windGustRaw, windGustUnit);
+  const windStr = windMph != null ? `${windDirLabel(windDir)} ${windMph}mph` : '--';
+  const gustStr = gustMph != null ? `G${gustMph}` : '';
   const ceilStr = ceilFt < 99000 ? Math.round(ceilFt / 100) * 100 + 'ft' : 'CLR';
 
   const skyDesc = sky && sky.length ?
