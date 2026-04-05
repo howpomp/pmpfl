@@ -20,13 +20,13 @@
   body{background:var(--bg);color:var(--text);font-family:var(--font-main);min-height:100vh;overflow-x:hidden}
 
   /* HEADER */
-  #header{background:linear-gradient(180deg,#0a1f33 0%,var(--bg2) 100%);border-bottom:2px solid var(--accent);padding:0 16px;display:flex;align-items:center;gap:12px;height:52px;position:sticky;top:0;z-index:100;flex-wrap:nowrap;overflow:hidden}
+  #header{background:linear-gradient(180deg,#0a1f33 0%,var(--bg2) 100%);border-bottom:2px solid var(--accent);padding:0 16px;display:flex;align-items:center;gap:12px;height:62px;position:sticky;top:0;z-index:100;flex-wrap:nowrap;overflow:hidden}
   #header-title{font-family:var(--font-cond);font-size:1.05rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:2px;white-space:nowrap;flex-shrink:0}
   #header-divider{width:1px;height:30px;background:var(--border);flex-shrink:0}
   #chips{display:flex;gap:6px;flex:1;flex-wrap:nowrap;overflow:hidden}
-  .chip{display:flex;flex-direction:column;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:2px 8px;min-width:52px;flex-shrink:0}
-  .chip-label{font-family:var(--font-mono);font-size:0.55rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
-  .chip-val{font-family:var(--font-mono);font-size:0.85rem;color:var(--text-bright);line-height:1.1}
+  .chip{display:flex;flex-direction:column;align-items:center;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:4px 12px;min-width:64px;flex-shrink:0}
+  .chip-label{font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+  .chip-val{font-family:var(--font-mono);font-size:1.1rem;color:var(--text-bright);line-height:1.15;font-weight:bold}
   .chip-val.vfr{color:var(--vfr)}.chip-val.mvfr{color:var(--mvfr)}.chip-val.ifr{color:var(--ifr)}.chip-val.lifr{color:var(--lifr)}
   #header-clock{font-family:var(--font-mono);font-size:0.85rem;color:var(--accent);white-space:nowrap;flex-shrink:0;text-align:right}
   #header-clock span{display:block;font-size:0.6rem;color:var(--text-dim)}
@@ -332,8 +332,8 @@ function drawFrame(i){
   rCtx.fillStyle='#050e18';rCtx.fillRect(0,0,RW,RH);
   if(rBg)rCtx.drawImage(rBg,0,0,RW,RH);
   rCtx.drawImage(img,0,0,RW,RH);
-  const mx=Math.round(((KPMP_LON-BMINX)/(BMAXX-BMINX))*RW);
-  const my=Math.round(((BMAXY-KPMP_LAT)/(BMAXY-BMINY))*RH);
+  const mx=Math.round(((KPMP_LON-BMINX)/(BMAXX-BMINX))*rCvs.width);
+  const my=Math.round(((BMAXY-KPMP_LAT)/(BMAXY-BMINY))*rCvs.height);
   rCtx.beginPath();rCtx.arc(mx,my,5,0,Math.PI*2);rCtx.fillStyle='#ff4444';rCtx.fill();
   rCtx.strokeStyle='#fff';rCtx.lineWidth=1.5;rCtx.stroke();
   rCtx.fillStyle='rgba(0,200,255,0.95)';rCtx.font='bold 11px monospace';rCtx.fillText('KPMP',mx+8,my+4);
@@ -398,7 +398,11 @@ function aptCard(apt,p){
   const vis=p.visibility?.value,sky=p.cloudLayers;
   const visMi=vis!=null?parseFloat(m2mi(vis)):99;
   const cat=flightCat(getCeil(sky),visMi);
-  const skyTxt=sky&&sky.length?sky.filter(l=>l.skyCover!=='CLR').map(l=>`${l.skyCover}${l.base?.value?' '+Math.round(l.base.value*3.28084/100)*100+'ft':''}`).join(' ')||'CLR':'CLR';
+  const skyTxt=sky&&sky.length
+    ? sky.filter(l=>l.skyCover&&l.skyCover!=='CLR'&&l.skyCover!=='SKC'&&l.skyCover!=='NSC')
+        .map(l=>{const baseVal=l.base?.value;const ftStr=(baseVal!=null&&baseVal>0)?(' '+Math.round(baseVal*3.28084/100)*100+'ft'):'';return l.skyCover+ftStr})
+        .join(' ')||'CLR'
+    : 'CLR';
   const tF=p.temperature?.value!=null?cToF(p.temperature.value)+'°':'--';
   const dF=p.dewpoint?.value!=null?cToF(p.dewpoint.value)+'°':'--';
   const wStr=wMph!=null?`${compass(p.windDirection?.value??0)} ${wMph}mph`:'--';
@@ -422,35 +426,31 @@ async function loadAirports(){
 async function loadEnsemble(){
   const body=document.getElementById('ensemble-body');
   try{
-    const url=`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${KPMP_LAT}&longitude=${KPMP_LON}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&models=gfs_seamless,ecmwf_ifs04,icon_seamless,gem_seamless&timezone=America%2FNew_York&forecast_days=4`;
+    const url=`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${KPMP_LAT}&longitude=${KPMP_LON}&daily=temperature_2m_max,temperature_2m_min&models=gfs_seamless,ecmwf_ifs04,icon_seamless,gem_seamless&timezone=America%2FNew_York&forecast_days=4`;
     const d=await(await fetchT(url,20000)).json();
     const days=d.daily.time.slice(0,3);
     const mk=Object.keys(d.daily).filter(k=>k!=='time');
     const hk=mk.filter(k=>k.startsWith('temperature_2m_max'));
     const lk=mk.filter(k=>k.startsWith('temperature_2m_min'));
-    const pk=mk.filter(k=>k.startsWith('precipitation_sum'));
     const vals=(keys,i)=>keys.map(k=>d.daily[k][i]).filter(v=>v!=null);
     const p50=v=>{const s=[...v].sort((a,b)=>a-b);return s[Math.floor(s.length/2)]};
     const spr=v=>{const s=[...v].sort((a,b)=>a-b);return s[Math.floor(s.length*.9)]-s[Math.floor(s.length*.1)]};
     const toF=c=>c*9/5+32;
     const conf=sp=>sp<2?'<span class="ens-conf conf-high">HIGH</span>':sp<4?'<span class="ens-conf conf-med">MED</span>':'<span class="ens-conf conf-low">LOW</span>';
     const tCls=f=>f>=90?'hot':f>=75?'warm':'cool';
-    const pCls=p=>p>=60?'pop-hi':p>=30?'pop-mid':'pop-lo';
     const lbls=['Today','Tomorrow',new Date(days[2]+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'})];
 
     let h='<div class="ens-grid">';
     days.forEach((ds,i)=>{
-      const hv=vals(hk,i),lv=vals(lk,i),pv=vals(pk,i);
+      const hv=vals(hk,i),lv=vals(lk,i);
       if(!hv.length)return;
       const hF=Math.round(toF(p50(hv))),lF=Math.round(toF(p50(lv)));
-      const pop=Math.round(pv.filter(v=>v*0.0394>0.01).length/pv.length*100);
       const dl=new Date(ds+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
       h+=`<div class="ens-day">
         <div><div class="ens-day-label">${lbls[i]}</div><div class="ens-date">${dl}</div></div>
         <div class="ens-temps">
           <div class="ens-temp-col"><span class="ens-col-label">HIGH</span><span class="ens-val ${tCls(hF)}">${hF}°</span>${conf(spr(hv))}</div>
           <div class="ens-temp-col"><span class="ens-col-label">LOW</span><span class="ens-val ${tCls(lF)}">${lF}°</span>${conf(spr(lv))}</div>
-          <div class="ens-temp-col"><span class="ens-col-label">POP</span><span class="ens-pop ${pCls(pop)}">${pop}%</span></div>
         </div>
       </div>`;
     });
