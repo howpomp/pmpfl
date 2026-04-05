@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pompano Beach Home Weather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060d14;
+    --bg2: #0b1724;
+    --bg3: #111f2e;
+    --border: #1a3048;
+    --accent: #00aaff;
+    --accent2: #00d4aa;
+    --warn-red: #ff3b3b;
+    --warn-orange: #ff8800;
+    --warn-yellow: #ffd600;
+    --warn-blue: #4488ff;
+    --text: #ddeeff;
+    --text-dim: #6a8faa;
+    --text-bright: #ffffff;
+    --vfr: #00cc44;
+    --mvfr: #3388ff;
+    --ifr: #ff3344;
+    --lifr: #cc44ff;
+    --chip-h: 36px;
+    --radius: 4px;
+    --font-main: 'Rajdhani', sans-serif;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-cond: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    background: linear-gradient(180deg, #0a1f33 0%, var(--bg2) 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  #header-title {
+    font-family: var(--font-cond);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #header-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  #chips {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2px 8px;
+    min-width: 52px;
+    flex-shrink: 0;
+  }
+  .chip-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .chip-val {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-bright);
+    line-height: 1.1;
+  }
+  .chip-val.vfr { color: var(--vfr); }
+  .chip-val.mvfr { color: var(--mvfr); }
+  .chip-val.ifr { color: var(--ifr); }
+  .chip-val.lifr { color: var(--lifr); }
+
+  #header-clock {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  #header-clock span { display: block; font-size: 0.6rem; color: var(--text-dim); }
+
+  /* ── MAIN GRID ── */
+  #main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto auto;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .panel-title {
+    font-family: var(--font-cond);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,170,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title .badge {
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+
+  /* ── ROW 1: RADAR + ALERTS ── */
+  #radar-panel { grid-column: 1; grid-row: 1; }
+  #alerts-panel { grid-column: 2; grid-row: 1; }
+
+  #radar-container {
+    position: relative;
+    width: 100%;
+    height: 360px;
+    background: #050e18;
+  }
+
+  #radar-map {
+    width: 100%;
+    height: 100%;
+  }
+
+  #radar-timestamp {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    background: rgba(6,13,20,0.85);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 2px;
+    z-index: 10;
+  }
+
+  #radar-play-btn {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    background: rgba(0,170,255,0.2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    z-index: 10;
+  }
+  #radar-play-btn:hover { background: rgba(0,170,255,0.35); }
+
+  /* ── ALERTS ── */
+  #alerts-body {
+    height: 360px;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  #alerts-body::-webkit-scrollbar { width: 4px; }
+  #alerts-body::-webkit-scrollbar-track { background: var(--bg); }
+  #alerts-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .alert-card {
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    border-left: 3px solid;
+    background: rgba(255,255,255,0.03);
+  }
+  .alert-card.warning { border-color: var(--warn-red); }
+  .alert-card.watch { border-color: var(--warn-orange); }
+  .alert-card.advisory { border-color: var(--warn-yellow); }
+  .alert-card.statement { border-color: var(--warn-blue); }
+
+  .alert-event {
+    font-family: var(--font-cond);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .alert-meta {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .alert-area {
+    font-size: 0.72rem;
+    color: var(--text);
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+  .alert-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-right: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  .badge-warning { background: rgba(255,59,59,0.25); color: var(--warn-red); border: 1px solid var(--warn-red); }
+  .badge-watch { background: rgba(255,136,0,0.2); color: var(--warn-orange); border: 1px solid var(--warn-orange); }
+  .badge-advisory { background: rgba(255,214,0,0.15); color: var(--warn-yellow); border: 1px solid var(--warn-yellow); }
+  .badge-statement { background: rgba(68,136,255,0.15); color: var(--warn-blue); border: 1px solid var(--warn-blue); }
+
+  #alerts-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--vfr);
+    font-family: var(--font-cond);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #alerts-empty .big { font-size: 2rem; }
+
+  /* ── ROW 2: FORECAST CARDS ── */
+  #forecast-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  #forecast-cards {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    overflow-x: auto;
+  }
+  #forecast-cards::-webkit-scrollbar { height: 3px; }
+  #forecast-cards::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .fc-card {
+    flex: 1;
+    min-width: 90px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 6px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .fc-card.tonight { border-color: rgba(0,170,255,0.3); }
+  .fc-period {
+    font-family: var(--font-cond);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .fc-temp {
+    font-family: var(--font-mono);
+    font-size: 1.3rem;
+    color: var(--text-bright);
+    font-weight: bold;
+  }
+  .fc-icon { font-size: 1.5rem; }
+  .fc-desc {
+    font-size: 0.65rem;
+    color: var(--text);
+    line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .fc-pop {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--accent2);
+  }
+
+  /* ── ROW 3: AIRPORT CONDITIONS ── */
+  #airports-panel {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  #airports-body { padding: 8px; }
+
+  .airport-tier-label {
+    font-family: var(--font-cond);
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    margin-top: 4px;
+    padding-left: 2px;
+  }
+
+  .airport-grid {
+    display: grid;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .airport-grid.primary { grid-template-columns: repeat(6, 1fr); }
+  .airport-grid.secondary { grid-template-columns: repeat(6, 1fr); }
+
+  .apt-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    border-top: 2px solid;
+  }
+  .apt-card.vfr { border-top-color: var(--vfr); }
+  .apt-card.mvfr { border-top-color: var(--mvfr); }
+  .apt-card.ifr { border-top-color: var(--ifr); }
+  .apt-card.lifr { border-top-color: var(--lifr); }
+  .apt-card.unknown { border-top-color: var(--border); }
+
+  .apt-id {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-bright);
+    font-weight: bold;
+  }
+  .apt-cat {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: bold;
+    margin-left: 6px;
+  }
+  .apt-cat.vfr { color: var(--vfr); }
+  .apt-cat.mvfr { color: var(--mvfr); }
+  .apt-cat.ifr { color: var(--ifr); }
+  .apt-cat.lifr { color: var(--lifr); }
+
+  .apt-row1 { display: flex; align-items: baseline; }
+  .apt-name { font-size: 0.58rem; color: var(--text-dim); margin-top: 1px; }
+
+  .apt-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 5px;
+  }
+  .apt-stat { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text); }
+  .apt-stat span { color: var(--text-dim); font-size: 0.55rem; }
+
+  .apt-sky { font-size: 0.6rem; color: var(--text-dim); margin-top: 3px; }
+
+  /* Secondary airports smaller */
+  .airport-grid.secondary .apt-card { padding: 4px 7px; }
+  .airport-grid.secondary .apt-id { font-size: 0.72rem; }
+  .airport-grid.secondary .apt-stats { grid-template-columns: 1fr 1fr; }
+  .airport-grid.secondary .apt-stat { font-size: 0.58rem; }
+
+  /* ── ROW 4: SPC + ENSEMBLE ── */
+  #spc-panel { grid-column: 1; grid-row: 4; }
+  #ensemble-panel { grid-column: 2; grid-row: 4; }
+
+  #spc-img-wrap {
+    padding: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 220px;
+    background: #050e18;
+  }
+  #spc-img {
+    max-width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 2px;
+  }
+  #spc-link {
+    display: block;
+    text-align: center;
+    padding: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  #spc-link:hover { color: var(--accent); }
+
+  /* ── ENSEMBLE ── */
+  #ensemble-body {
+    padding: 8px;
+  }
+
+  .ens-day {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr 1fr;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 6px;
+    border-radius: var(--radius);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    margin-bottom: 5px;
+  }
+  .ens-day-label {
+    font-family: var(--font-cond);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .ens-date {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    color: var(--text-dim);
+  }
+  .ens-col { text-align: center; }
+  .ens-col-label {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .ens-val {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-bright);
+  }
+  .ens-val.hot { color: #ff7733; }
+  .ens-val.warm { color: #ffcc44; }
+  .ens-val.cool { color: #44aaff; }
+  .ens-val.pop-hi { color: var(--warn-orange); }
+  .ens-val.pop-mid { color: var(--accent2); }
+  .ens-val.pop-lo { color: var(--text-dim); }
+
+  .ens-conf {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .conf-high { background: rgba(0,204,68,0.2); color: var(--vfr); border: 1px solid var(--vfr); }
+  .conf-med { background: rgba(255,214,0,0.15); color: var(--warn-yellow); border: 1px solid var(--warn-yellow); }
+  .conf-low { background: rgba(255,59,59,0.15); color: var(--warn-red); border: 1px solid var(--warn-red); }
+
+  #ens-link {
+    display: block;
+    text-align: center;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg3);
+    letter-spacing: 1px;
+  }
+  #ens-link:hover { border-color: var(--accent); background: rgba(0,170,255,0.08); }
+
+  /* ── FOOTER ── */
+  #footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin: 0 10px 10px;
+    background: var(--bg2);
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+
+  /* ── LOADING SHIMMER ── */
+  .shimmer {
+    background: linear-gradient(90deg, var(--bg3) 25%, var(--border) 50%, var(--bg3) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 3px;
+    min-height: 14px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── ALERTS COUNTER BADGE ── */
+  .alert-count-badge {
+    background: var(--warn-red);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    animation: pulse-red 2s infinite;
+  }
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  .no-alerts-badge {
+    background: rgba(0,204,68,0.2);
+    color: var(--vfr);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    border: 1px solid var(--vfr);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-title">📡 PMPFL · Pompano Beach</div>
+  <div id="header-divider"></div>
+  <div id="chips">
+    <div class="chip"><span class="chip-label">TEMP</span><span class="chip-val" id="chip-temp">--</span></div>
+    <div class="chip"><span class="chip-label">DEW PT</span><span class="chip-val" id="chip-dew">--</span></div>
+    <div class="chip"><span class="chip-label">WIND</span><span class="chip-val" id="chip-wind">--</span></div>
+    <div class="chip"><span class="chip-label">GUSTS</span><span class="chip-val" id="chip-gust">--</span></div>
+    <div class="chip"><span class="chip-label">HUMID</span><span class="chip-val" id="chip-humid">--</span></div>
+    <div class="chip"><span class="chip-label">BARO</span><span class="chip-val" id="chip-baro">--</span></div>
+    <div class="chip"><span class="chip-label">VIS</span><span class="chip-val" id="chip-vis">--</span></div>
+    <div class="chip"><span class="chip-label">FLT CAT</span><span class="chip-val" id="chip-fltcat">--</span></div>
+  </div>
+  <div id="header-clock">
+    <div id="clock-time">--:-- --</div>
+    <span id="clock-date">--- -- ----</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ROW 1 LEFT: RADAR -->
+  <div class="panel" id="radar-panel">
+    <div class="panel-title">
+      NWS RADAR · South Florida
+      <span id="radar-anim-status" class="badge" style="color:var(--text-dim);font-size:0.6rem;">Loading…</span>
+    </div>
+    <div id="radar-container">
+      <canvas id="radar-map"></canvas>
+      <div id="radar-timestamp">--:-- UTC</div>
+      <button id="radar-play-btn" onclick="toggleRadarPlayback()">⏸ PAUSE</button>
+    </div>
+  </div>
+
+  <!-- ROW 1 RIGHT: ALERTS -->
+  <div class="panel" id="alerts-panel">
+    <div class="panel-title">
+      FL LAND ALERTS
+      <span id="alerts-count-badge" class="no-alerts-badge">NONE ACTIVE</span>
+    </div>
+    <div id="alerts-body">
+      <div class="shimmer" style="height:60px;"></div>
+      <div class="shimmer" style="height:60px;margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: FORECAST -->
+  <div class="panel" id="forecast-panel">
+    <div class="panel-title">NWS FORECAST · KPMP / Pompano Beach</div>
+    <div id="forecast-cards"><div class="shimmer" style="height:120px;width:100%;margin:8px;"></div></div>
+  </div>
+
+  <!-- ROW 3: AIRPORTS -->
+  <div class="panel" id="airports-panel">
+    <div class="panel-title">AIRPORT CONDITIONS · South Florida &amp; Florida</div>
+    <div id="airports-body">
+      <div class="shimmer" style="height:80px;"></div>
+    </div>
+  </div>
+
+  <!-- ROW 4 LEFT: SPC -->
+  <div class="panel" id="spc-panel">
+    <div class="panel-title">SPC DAY 1 OUTLOOK</div>
+    <div id="spc-img-wrap">
+      <img id="spc-img" src="" alt="SPC Day 1 Outlook" onerror="handleSpcError()">
+    </div>
+    <a id="spc-link" href="https://www.spc.noaa.gov/products/outlook/day1otlk.html" target="_blank">
+      spc.noaa.gov — View Full Outlook ↗
+    </a>
+  </div>
+
+  <!-- ROW 4 RIGHT: ENSEMBLE -->
+  <div class="panel" id="ensemble-panel">
+    <div class="panel-title">KPMP ENSEMBLE FORECAST · 3-Day Summary <span style="font-size:0.55rem;color:var(--text-dim);">Open-Meteo GFS/ECMWF/ICON/GEM</span></div>
+    <div id="ensemble-body"><div class="shimmer" style="height:180px;margin:8px;"></div></div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div id="footer">
+  <span>Data: NWS · NOAA · Open-Meteo · SPC</span>
+  <span id="footer-refresh">Refreshing every 5 min</span>
+  <span id="footer-updated">Last updated: --</span>
+</div>
+
+<script>
+'use strict';
+
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const KPMP_STATION = 'KPMP';
+const KPMP_LAT = 26.247;
+const KPMP_LON = -80.111;
+const NWS_GRID_WFO = 'MFL';
+const NWS_GRID_X = 110;
+const NWS_GRID_Y = 37;
+const REFRESH_MS = 5 * 60 * 1000;
+
+const SOUTH_FL_AIRPORTS = [
+  { id: 'KFLL', name: 'Ft. Lauderdale Intl' },
+  { id: 'KMIA', name: 'Miami Intl' },
+  { id: 'KPBI', name: 'Palm Beach Intl' },
+  { id: 'KBCT', name: 'Boca Raton' },
+  { id: 'KOPF', name: 'Opa-locka' },
+  { id: 'KTMB', name: 'Homestead / Tamiami' },
+];
+
+const STATE_AIRPORTS = [
+  { id: 'KTPA', name: 'Tampa Intl' },
+  { id: 'KMCO', name: 'Orlando Intl' },
+  { id: 'KJAX', name: 'Jacksonville Intl' },
+  { id: 'KTLH', name: 'Tallahassee' },
+  { id: 'KPNS', name: 'Pensacola Intl' },
+  { id: 'KEYW', name: 'Key West Intl' },
+];
+
+// Land-based alert event types only
+const LAND_ALERT_EVENTS = new Set([
+  'Tornado Warning','Tornado Watch','Severe Thunderstorm Warning','Severe Thunderstorm Watch',
+  'Flash Flood Warning','Flash Flood Watch','Flash Flood Statement','Flood Warning','Flood Watch',
+  'Flood Advisory','Flood Statement','Areal Flood Warning','Areal Flood Advisory','Areal Flood Watch',
+  'Wind Advisory','High Wind Warning','High Wind Watch','Extreme Wind Warning',
+  'Special Weather Statement','Hazardous Weather Outlook',
+  'Heat Advisory','Excessive Heat Warning','Excessive Heat Watch',
+  'Dense Fog Advisory','Freeze Warning','Freeze Watch','Frost Advisory',
+  'Winter Storm Warning','Winter Storm Watch','Winter Weather Advisory',
+  'Tropical Storm Warning','Tropical Storm Watch','Hurricane Warning','Hurricane Watch',
+  'Tropical Storm Local Statement','Hurricane Local Statement',
+  'Fire Weather Watch','Red Flag Warning','Air Quality Alert',
+  'Rip Current Statement','Dust Advisory','Blizzard Warning',
+]);
+
+// ── UTILITIES ────────────────────────────────────────────────────────────────
+const fetchWithTimeout = (url, ms = 12000) => {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id));
+};
+
+function degToCompass(deg) {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+  return dirs[Math.round(deg / 22.5) % 16] || '--';
+}
+
+function mpsToKts(mps) { return Math.round(mps * 1.944); }
+function mpsToMph(mps) { return Math.round(mps * 2.237); }
+function metersToMiles(m) { return (m / 1609.34).toFixed(1); }
+function paToInHg(pa) { return (pa * 0.0002953).toFixed(2); }
+function cToF(c) { return Math.round(c * 9/5 + 32); }
+
+function flightCategory(ceiling, visMi) {
+  if (ceiling < 500 || visMi < 1) return 'lifr';
+  if (ceiling < 1000 || visMi < 3) return 'ifr';
+  if (ceiling < 3000 || visMi < 5) return 'mvfr';
+  return 'vfr';
+}
+
+function getCeilingFt(skyCover) {
+  if (!skyCover) return 99999;
+  const broken = skyCover.filter(l => ['BKN','OVC'].includes(l.skyCover));
+  if (!broken.length) return 99999;
+  return Math.min(...broken.map(l => l.base?.value ?? 99999)) * 3.28084;
+}
+
+function windDirLabel(deg) {
+  if (deg === null || deg === undefined) return '--';
+  return degToCompass(deg);
+}
+
+// ── CLOCK ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const d = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  document.getElementById('clock-time').textContent = t;
+  document.getElementById('clock-date').textContent = d;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── HEADER CHIPS (KPMP METAR) ────────────────────────────────────────────────
+async function loadKPMPChips() {
+  try {
+    const r = await fetchWithTimeout(`https://api.weather.gov/stations/${KPMP_STATION}/observations/latest`);
+    if (!r.ok) throw new Error('obs fetch');
+    const d = await r.json();
+    const p = d.properties;
+
+    const tempC = p.temperature?.value;
+    const dewC = p.dewpoint?.value;
+    const windSpd = p.windSpeed?.value;
+    const windDir = p.windDirection?.value;
+    const windGust = p.windGust?.value;
+    const humid = p.relativeHumidity?.value;
+    const baro = p.seaLevelPressure?.value;
+    const vis = p.visibility?.value;
+    const sky = p.cloudLayers;
+
+    const tempF = tempC != null ? cToF(tempC) + '°F' : '--';
+    const dewF = dewC != null ? cToF(dewC) + '°F' : '--';
+    const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToKts(windSpd)}kt` : '--';
+    const gustStr = windGust != null ? `${mpsToKts(windGust)}kt` : 'None';
+    const humidStr = humid != null ? Math.round(humid) + '%' : '--';
+    const baroStr = baro != null ? paToInHg(baro) + '"' : '--';
+    const visStr = vis != null ? metersToMiles(vis) + 'mi' : '--';
+
+    const visMi = vis != null ? parseFloat(metersToMiles(vis)) : 99;
+    const ceilFt = getCeilingFt(sky);
+    const cat = flightCategory(ceilFt, visMi);
+
+    document.getElementById('chip-temp').textContent = tempF;
+    document.getElementById('chip-dew').textContent = dewF;
+    document.getElementById('chip-wind').textContent = windStr;
+    document.getElementById('chip-gust').textContent = gustStr;
+    document.getElementById('chip-humid').textContent = humidStr;
+    document.getElementById('chip-baro').textContent = baroStr;
+    document.getElementById('chip-vis').textContent = visStr;
+
+    const catEl = document.getElementById('chip-fltcat');
+    catEl.textContent = cat.toUpperCase();
+    catEl.className = `chip-val ${cat}`;
+  } catch(e) {
+    console.warn('KPMP chips:', e);
+  }
+}
+
+// ── RADAR (NWS WMS) ──────────────────────────────────────────────────────────
+const RADAR_FRAMES = 6;
+const RADAR_INTERVAL_MS = 600;
+const WMS_BASE = 'https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows';
+
+// South Florida bounding box
+const BBOX_MINX = -82.0, BBOX_MINY = 24.5, BBOX_MAXX = -79.5, BBOX_MAXY = 27.5;
+const RADAR_W = 760, RADAR_H = 360;
+
+let radarImages = [];
+let radarPlaying = true;
+let radarFrameIdx = 0;
+let radarTimer = null;
+let radarCanvas = null;
+let radarCtx = null;
+let radarBg = null;
+
+function wmsUrl(time) {
+  const p = new URLSearchParams({
+    service: 'WMS', version: '1.3.0', request: 'GetMap',
+    layers: 'conus_bref_qcd', styles: '',
+    crs: 'EPSG:4326',
+    bbox: `${BBOX_MINY},${BBOX_MINX},${BBOX_MAXY},${BBOX_MAXX}`,
+    width: RADAR_W, height: RADAR_H,
+    format: 'image/png',
+    transparent: 'true',
+    time,
+  });
+  return `${WMS_BASE}?${p}`;
+}
+
+function basemapUrl() {
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/export?bbox=${BBOX_MINX},${BBOX_MINY},${BBOX_MAXX},${BBOX_MAXY}&bboxSR=4326&size=${RADAR_W},${RADAR_H}&format=png&f=image`;
+}
+
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('img load: ' + src));
+    img.src = src;
+  });
+}
+
+async function initRadar() {
+  radarCanvas = document.getElementById('radar-map');
+  radarCanvas.width = RADAR_W;
+  radarCanvas.height = RADAR_H;
+  radarCtx = radarCanvas.getContext('2d');
+
+  // Draw placeholder
+  radarCtx.fillStyle = '#050e18';
+  radarCtx.fillRect(0, 0, RADAR_W, RADAR_H);
+
+  // Try to load basemap
+  try { radarBg = await loadImage(basemapUrl()); } catch(e) { radarBg = null; }
+
+  await fetchRadarFrames();
+}
+
+async function fetchRadarFrames() {
+  document.getElementById('radar-anim-status').textContent = 'Loading…';
+
+  // Get available times from WMS GetCapabilities
+  const now = new Date();
+  const times = [];
+  for (let i = RADAR_FRAMES - 1; i >= 0; i--) {
+    const t = new Date(now.getTime() - i * 10 * 60 * 1000);
+    // Round down to nearest 10 min
+    t.setMinutes(Math.floor(t.getMinutes() / 10) * 10, 0, 0);
+    times.push(t.toISOString().replace('.000', ''));
+  }
+
+  const loaded = [];
+  for (const time of times) {
+    try {
+      const img = await loadImage(wmsUrl(time));
+      loaded.push({ img, time });
+    } catch(e) { /* skip */ }
+  }
+
+  if (loaded.length === 0) {
+    document.getElementById('radar-anim-status').textContent = '⚠ No Data';
+    return;
+  }
+
+  radarImages = loaded;
+  radarFrameIdx = 0;
+  document.getElementById('radar-anim-status').textContent = `${loaded.length} frames`;
+
+  if (radarTimer) clearInterval(radarTimer);
+  if (radarPlaying) startRadarLoop();
+  else drawRadarFrame(0);
+}
+
+function drawRadarFrame(idx) {
+  if (!radarImages.length) return;
+  const { img, time } = radarImages[idx];
+  radarCtx.fillStyle = '#050e18';
+  radarCtx.fillRect(0, 0, RADAR_W, RADAR_H);
+  if (radarBg) radarCtx.drawImage(radarBg, 0, 0, RADAR_W, RADAR_H);
+  radarCtx.drawImage(img, 0, 0, RADAR_W, RADAR_H);
+
+  // State outlines overlay (simple SVG path won't work — use text label instead)
+  radarCtx.fillStyle = 'rgba(0,170,255,0.7)';
+  radarCtx.font = 'bold 11px monospace';
+  radarCtx.fillText('KPMP ●', 375, 190);
+
+  const d = new Date(time);
+  document.getElementById('radar-timestamp').textContent =
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+}
+
+function startRadarLoop() {
+  radarTimer = setInterval(() => {
+    radarFrameIdx = (radarFrameIdx + 1) % radarImages.length;
+    drawRadarFrame(radarFrameIdx);
+  }, RADAR_INTERVAL_MS);
+  drawRadarFrame(radarFrameIdx);
+}
+
+function toggleRadarPlayback() {
+  radarPlaying = !radarPlaying;
+  const btn = document.getElementById('radar-play-btn');
+  if (radarPlaying) {
+    btn.textContent = '⏸ PAUSE';
+    startRadarLoop();
+  } else {
+    clearInterval(radarTimer);
+    btn.textContent = '▶ PLAY';
+  }
+}
+
+// ── ALERTS ───────────────────────────────────────────────────────────────────
+let knownAlertIds = new Set();
+let firstAlertLoad = true;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playEASChime() {
+  try {
+    const ctx = getAudioCtx();
+    const tones = [960, 853, 960];
+    let t = ctx.currentTime;
+    tones.forEach(freq => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t); osc.stop(t + 0.35);
+      t += 0.38;
+    });
+  } catch(e) {}
+}
+
+function alertSeverityClass(event) {
+  const e = event.toLowerCase();
+  if (e.includes('warning')) return 'warning';
+  if (e.includes('watch')) return 'watch';
+  if (e.includes('advisory')) return 'advisory';
+  return 'statement';
+}
+
+function alertBadgeClass(event) {
+  const cls = alertSeverityClass(event);
+  return `badge-${cls}`;
+}
+
+function formatAlertTime(iso) {
+  if (!iso) return '--';
+  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadAlerts() {
+  const body = document.getElementById('alerts-body');
+  try {
+    const r = await fetchWithTimeout('https://api.weather.gov/alerts/active?status=actual&message_type=alert&area=FL');
+    if (!r.ok) throw new Error('alerts');
+    const d = await r.json();
+
+    // Filter land-based only
+    const land = d.features.filter(f => {
+      const ev = f.properties.event;
+      // Exclude purely marine/coastal events
+      const lower = ev.toLowerCase();
+      if (lower.includes('marine') || lower.includes('coastal flood') ||
+          lower.includes('beach hazard') || lower.includes('high surf') ||
+          lower.includes('lake wind') || lower.includes('small craft') ||
+          lower.includes('gale') || lower.includes('storm warning') && lower.includes('seas') ||
+          lower.includes('hazardous seas') || lower.includes('dense water')) return false;
+      return true;
+    });
+
+    // Sort by sent desc
+    land.sort((a, b) => new Date(b.properties.sent) - new Date(a.properties.sent));
+
+    const newIds = new Set(land.map(f => f.id));
+    if (!firstAlertLoad) {
+      const novel = land.filter(f => !knownAlertIds.has(f.id) &&
+        alertSeverityClass(f.properties.event) === 'warning');
+      if (novel.length > 0) playEASChime();
+    }
+    knownAlertIds = newIds;
+    firstAlertLoad = false;
+
+    const badge = document.getElementById('alerts-count-badge');
+    if (land.length === 0) {
+      badge.textContent = 'NONE ACTIVE';
+      badge.className = 'no-alerts-badge';
+      body.innerHTML = `<div id="alerts-empty"><span class="big">✓</span><span>No Active Land Alerts for Florida</span></div>`;
+      return;
+    }
+
+    badge.textContent = `${land.length} ACTIVE`;
+    badge.className = 'alert-count-badge';
+
+    body.innerHTML = land.map(f => {
+      const p = f.properties;
+      const cls = alertSeverityClass(p.event);
+      const badgeCls = alertBadgeClass(p.event);
+      const area = p.areaDesc ? p.areaDesc.split(';').slice(0,4).join('; ') : '';
+      return `<div class="alert-card ${cls}">
+        <div class="alert-event">
+          <span class="alert-badge ${badgeCls}">${cls.toUpperCase()}</span>${p.event}
+        </div>
+        <div class="alert-meta">Issued: ${formatAlertTime(p.sent)} · Expires: ${formatAlertTime(p.expires)}</div>
+        <div class="alert-area">${area}</div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    console.warn('Alerts:', e);
+    body.innerHTML = `<div style="padding:20px;color:var(--text-dim);font-family:var(--font-mono);font-size:0.7rem;">Unable to load alerts</div>`;
+  }
+}
+
+// ── FORECAST ─────────────────────────────────────────────────────────────────
+const WX_ICONS = {
+  'sunny': '☀️', 'clear': '🌙', 'mostly sunny': '🌤️', 'partly sunny': '⛅',
+  'partly cloudy': '⛅', 'mostly cloudy': '🌥️', 'cloudy': '☁️', 'overcast': '☁️',
+  'rain': '🌧️', 'showers': '🌦️', 'thunderstorm': '⛈️', 'thunder': '⛈️',
+  'isolated': '🌦️', 'scattered': '🌦️', 'fog': '🌫️', 'wind': '💨',
+  'hurricane': '🌀', 'tropical': '🌀', 'snow': '❄️', 'sleet': '🌨️',
+};
+
+function getIcon(shortForecast) {
+  const lower = (shortForecast || '').toLowerCase();
+  for (const [key, icon] of Object.entries(WX_ICONS)) {
+    if (lower.includes(key)) return icon;
+  }
+  return '🌡️';
+}
+
+async function loadForecast() {
+  const container = document.getElementById('forecast-cards');
+  try {
+    const r = await fetchWithTimeout(`https://api.weather.gov/gridpoints/${NWS_GRID_WFO}/${NWS_GRID_X},${NWS_GRID_Y}/forecast`);
+    if (!r.ok) throw new Error('forecast');
+    const d = await r.json();
+    const periods = d.properties.periods.slice(0, 14);
+
+    container.innerHTML = periods.map((p, i) => {
+      const isNight = !p.isDaytime;
+      const pop = p.probabilityOfPrecipitation?.value;
+      const popStr = pop != null ? `💧 ${pop}%` : '';
+      return `<div class="fc-card ${i === 0 ? (isNight ? 'tonight' : '') : ''}">
+        <div class="fc-period">${p.name}</div>
+        <div class="fc-icon">${getIcon(p.shortForecast)}</div>
+        <div class="fc-temp">${p.temperature}°${p.temperatureUnit}</div>
+        <div class="fc-desc">${p.shortForecast}</div>
+        ${popStr ? `<div class="fc-pop">${popStr}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.warn('Forecast:', e);
+    container.innerHTML = `<div style="padding:20px;color:var(--text-dim);font-family:var(--font-mono);font-size:0.7rem;">Unable to load forecast</div>`;
+  }
+}
+
+// ── AIRPORT CONDITIONS ────────────────────────────────────────────────────────
+async function fetchMetar(stationId) {
+  const r = await fetchWithTimeout(`https://api.weather.gov/stations/${stationId}/observations/latest`);
+  if (!r.ok) throw new Error(`${stationId} obs`);
+  return (await r.json()).properties;
+}
+
+function buildAptCard(apt, p, size) {
+  const tempC = p.temperature?.value;
+  const dewC = p.dewpoint?.value;
+  const windSpd = p.windSpeed?.value;
+  const windDir = p.windDirection?.value;
+  const windGust = p.windGust?.value;
+  const vis = p.visibility?.value;
+  const sky = p.cloudLayers;
+
+  const visMi = vis != null ? parseFloat(metersToMiles(vis)) : 99;
+  const ceilFt = getCeilingFt(sky);
+  const cat = flightCategory(ceilFt, visMi);
+
+  const tempF = tempC != null ? cToF(tempC) + '°' : '--';
+  const dewF = dewC != null ? cToF(dewC) + '°' : '--';
+  const windStr = windSpd != null ? `${windDirLabel(windDir)} ${mpsToKts(windSpd)}kt` : '--';
+  const gustStr = windGust != null ? `G${mpsToKts(windGust)}` : '';
+  const ceilStr = ceilFt < 99000 ? Math.round(ceilFt / 100) * 100 + 'ft' : 'CLR';
+
+  const skyDesc = sky && sky.length ?
+    sky.filter(l => l.skyCover !== 'CLR').map(l => `${l.skyCover}${l.base?.value ? ' ' + Math.round(l.base.value * 3.28084 / 100) * 100 + 'ft' : ''}`).join(' ') || 'CLR'
+    : 'CLR';
+
+  return `<div class="apt-card ${cat}">
+    <div class="apt-row1">
+      <span class="apt-id">${apt.id}</span>
+      <span class="apt-cat ${cat}">${cat.toUpperCase()}</span>
+    </div>
+    <div class="apt-name">${apt.name}</div>
+    <div class="apt-stats">
+      <div class="apt-stat"><span>TMP </span>${tempF}</div>
+      <div class="apt-stat"><span>DEW </span>${dewF}</div>
+      <div class="apt-stat"><span>WND </span>${windStr}${gustStr ? ' ' + gustStr : ''}</div>
+      <div class="apt-stat"><span>VIS </span>${visMi < 99 ? visMi + 'mi' : '--'}</div>
+    </div>
+    <div class="apt-sky">${skyDesc}</div>
+  </div>`;
+}
+
+function buildAptError(apt) {
+  return `<div class="apt-card unknown">
+    <div class="apt-row1"><span class="apt-id">${apt.id}</span><span class="apt-cat" style="color:var(--text-dim)">N/A</span></div>
+    <div class="apt-name">${apt.name}</div>
+    <div class="apt-sky" style="margin-top:6px;color:var(--text-dim)">Data unavailable</div>
+  </div>`;
+}
+
+async function loadAirports() {
+  const body = document.getElementById('airports-body');
+
+  const allApts = [...SOUTH_FL_AIRPORTS, ...STATE_AIRPORTS];
+  const results = await Promise.allSettled(allApts.map(apt => fetchMetar(apt.id)));
+
+  let html = '';
+
+  // South FL primary
+  html += `<div class="airport-tier-label">▸ South Florida</div>`;
+  html += `<div class="airport-grid primary">`;
+  SOUTH_FL_AIRPORTS.forEach((apt, i) => {
+    const res = results[i];
+    html += res.status === 'fulfilled' ? buildAptCard(apt, res.value, 'primary') : buildAptError(apt);
+  });
+  html += `</div>`;
+
+  // Statewide secondary
+  html += `<div class="airport-tier-label">▸ Florida Statewide</div>`;
+  html += `<div class="airport-grid secondary">`;
+  STATE_AIRPORTS.forEach((apt, i) => {
+    const res = results[SOUTH_FL_AIRPORTS.length + i];
+    html += res.status === 'fulfilled' ? buildAptCard(apt, res.value, 'secondary') : buildAptError(apt);
+  });
+  html += `</div>`;
+
+  body.innerHTML = html;
+}
+
+// ── SPC OUTLOOK ───────────────────────────────────────────────────────────────
+function loadSPC() {
+  const ts = Math.floor(Date.now() / 60000);
+  const img = document.getElementById('spc-img');
+  img.src = `https://www.spc.noaa.gov/products/outlook/day1otlk_1200.gif?_=${ts}`;
+}
+
+function handleSpcError() {
+  const wrap = document.getElementById('spc-img-wrap');
+  wrap.innerHTML = `<div style="text-align:center;padding:20px;">
+    <div style="font-size:2rem;margin-bottom:8px;">🌩️</div>
+    <div style="font-family:var(--font-cond);font-size:0.8rem;color:var(--text-dim);letter-spacing:2px;">
+      SPC IMAGE BLOCKED BY BROWSER<br>
+      <a href="https://www.spc.noaa.gov/products/outlook/day1otlk.html" target="_blank"
+         style="color:var(--accent);text-decoration:none;font-size:0.7rem;margin-top:6px;display:block;">
+        View at SPC.NOAA.GOV ↗
+      </a>
+    </div>
+  </div>`;
+}
+
+// ── ENSEMBLE (Open-Meteo) ─────────────────────────────────────────────────────
+async function loadEnsemble() {
+  const body = document.getElementById('ensemble-body');
+  try {
+    const url = `https://ensemble-api.open-meteo.com/v1/ensemble?` +
+      `latitude=${KPMP_LAT}&longitude=${KPMP_LON}` +
+      `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum` +
+      `&models=gfs_seamless,ecmwf_ifs04,icon_seamless,gem_seamless` +
+      `&timezone=America%2FNew_York&forecast_days=4`;
+
+    const r = await fetchWithTimeout(url, 20000);
+    if (!r.ok) throw new Error('ensemble');
+    const d = await r.json();
+
+    // Collect all model highs/lows for each day
+    const days = d.daily.time.slice(0, 3);
+    const modelKeys = Object.keys(d.daily).filter(k => k !== 'time');
+
+    const highKeys = modelKeys.filter(k => k.startsWith('temperature_2m_max'));
+    const lowKeys = modelKeys.filter(k => k.startsWith('temperature_2m_min'));
+    const precipKeys = modelKeys.filter(k => k.startsWith('precipitation_sum'));
+
+    function memberVals(keys, dayIdx) {
+      return keys.map(k => d.daily[k][dayIdx]).filter(v => v != null);
+    }
+
+    function toF(c) { return c * 9/5 + 32; }
+
+    function p50(vals) {
+      const sorted = [...vals].sort((a,b) => a-b);
+      return sorted[Math.floor(sorted.length / 2)];
+    }
+
+    function spread(vals) {
+      const s = [...vals].sort((a,b)=>a-b);
+      const p10 = s[Math.floor(s.length * 0.1)];
+      const p90 = s[Math.floor(s.length * 0.9)];
+      return p90 - p10;
+    }
+
+    function confBadge(spreadVal, isTemp) {
+      // For temp in C: spread < 2C = HIGH, < 4C = MED, else LOW
+      const lo = isTemp ? 2 : 5;
+      const hi = isTemp ? 4 : 15;
+      if (spreadVal < lo) return '<span class="ens-conf conf-high">HIGH</span>';
+      if (spreadVal < hi) return '<span class="ens-conf conf-med">MED</span>';
+      return '<span class="ens-conf conf-low">LOW</span>';
+    }
+
+    function popClass(pct) {
+      if (pct >= 60) return 'pop-hi';
+      if (pct >= 30) return 'pop-mid';
+      return 'pop-lo';
+    }
+
+    function tempClass(f) {
+      if (f >= 90) return 'hot';
+      if (f >= 75) return 'warm';
+      return 'cool';
+    }
+
+    const now = new Date();
+    const dayLabels = ['Today', 'Tomorrow', days[2] ? new Date(days[2] + 'T12:00:00').toLocaleDateString('en-US', {weekday:'short'}) : ''];
+
+    let html = '';
+    days.forEach((dateStr, i) => {
+      const hiVals = memberVals(highKeys, i);
+      const loVals = memberVals(lowKeys, i);
+      const prVals = memberVals(precipKeys, i);
+
+      if (!hiVals.length) return;
+
+      const hiF = Math.round(toF(p50(hiVals)));
+      const loF = Math.round(toF(p50(loVals)));
+      const hiSpread = spread(hiVals);
+      const loSpread = spread(loVals);
+
+      // Precipitation probability = fraction of members with >0.01" precip
+      const popFrac = prVals.filter(v => v * 0.0394 > 0.01).length / prVals.length;
+      const popPct = Math.round(popFrac * 100);
+
+      const dateLabel = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+
+      html += `<div class="ens-day">
+        <div>
+          <div class="ens-day-label">${dayLabels[i]}</div>
+          <span class="ens-date">${dateLabel}</span>
+        </div>
+        <div class="ens-col">
+          <span class="ens-col-label">HIGH</span>
+          <span class="ens-val ${tempClass(hiF)}">${hiF}°F</span>${confBadge(hiSpread, true)}
+        </div>
+        <div class="ens-col">
+          <span class="ens-col-label">LOW</span>
+          <span class="ens-val ${tempClass(loF)}">${loF}°F</span>${confBadge(loSpread, true)}
+        </div>
+        <div class="ens-col">
+          <span class="ens-col-label">POP</span>
+          <span class="ens-val ${popClass(popPct)}">${popPct}%</span>
+        </div>
+      </div>`;
+    });
+
+    html += `<a id="ens-link" href="https://howpomp.github.io/TempPronKPMP/" target="_blank">
+      ↗ Full Ensemble Detail — TempPronKPMP
+    </a>`;
+
+    body.innerHTML = html;
+  } catch(e) {
+    console.warn('Ensemble:', e);
+    body.innerHTML = `<div style="padding:16px;color:var(--text-dim);font-family:var(--font-mono);font-size:0.7rem;">Unable to load ensemble data</div>`;
+  }
+}
+
+// ── FOOTER ───────────────────────────────────────────────────────────────────
+function updateFooter() {
+  const now = new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('footer-updated').textContent = `Last updated: ${now}`;
+}
+
+// ── MAIN LOAD ─────────────────────────────────────────────────────────────────
+async function loadAll() {
+  updateFooter();
+  await Promise.allSettled([
+    loadKPMPChips(),
+    loadAlerts(),
+    loadForecast(),
+    loadAirports(),
+    loadEnsemble(),
+  ]);
+  loadSPC();
+}
+
+// Init
+initRadar();
+loadAll();
+setInterval(loadAll, REFRESH_MS);
+setInterval(fetchRadarFrames, 10 * 60 * 1000); // refresh radar frames every 10 min
+</script>
+</body>
+</html>
